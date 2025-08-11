@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 
+
 namespace TSvnCMG
 {
     [ComVisible(true),
@@ -38,6 +39,11 @@ namespace TSvnCMG
         public string GetCommitMessage2(IntPtr hParentWnd, string parameters, string commonURL, string commonRoot, string[] pathList,
                                string originalMessage, string bugID, out string bugIDOut, out string[] revPropNames, out string[] revPropValues)
         {
+            // 准备好默认的输出参数
+            bugIDOut = bugID;
+            revPropNames = null;
+            revPropValues = null;
+
             // --- 新增的解析代码 ---
             OpenAIConfig config = null;
             try
@@ -57,64 +63,47 @@ namespace TSvnCMG
                 return originalMessage;
             }
 
-            // 检查一下关键信息是否存在
-            if (string.IsNullOrEmpty(config?.api_key))
-            {
-                MessageBox.Show("api_key in missing in Plugin parameters。", "Parameters Error");
-                // ... 返回并中断 ...
-            }
 
-            // 准备好默认的输出参数
-            bugIDOut = bugID;
-            revPropNames = null;
-            revPropValues = null;
 
+            // 2. 获取 Diff 内容
+            string diffContent = "";
             try
             {
-                // 创建一个 SvnClient 实例
                 using (SvnClient client = new SvnClient())
                 {
-                    // diff 的内容将会被写入这个内存流中
                     using (MemoryStream diffStream = new MemoryStream())
                     {
-                        SvnDiffArgs args = new SvnDiffArgs();
-                        args.IgnoreContentType = true;
-
-                        // 遍历所有待提交的文件
+                        SvnDiffArgs args = new SvnDiffArgs { IgnoreContentType = true };
                         foreach (string path in pathList)
                         {
-                            // 定义比较的两个版本：
-                            // 1. 修改前的版本 (Base)
-                            SvnPathTarget baseTarget = new SvnPathTarget(path, SvnRevision.Base);
-                            // 2. 当前工作副本中的版本 (Working)
-                            SvnPathTarget workingTarget = new SvnPathTarget(path, SvnRevision.Working);
-
-                            // 执行 Diff 操作
-                            client.Diff(baseTarget, workingTarget, args, diffStream);
+                            client.Diff(new SvnPathTarget(path, SvnRevision.Base), new SvnPathTarget(path, SvnRevision.Working), args, diffStream);
                         }
-
-                        // 将流中的内容转换成字符串
-                        diffStream.Position = 0; // 重置流的位置到开头
-                        string diffContent = new StreamReader(diffStream, Encoding.UTF8).ReadToEnd();
-
-                        // --- 测试步骤 ---
-                        // 弹出一个消息框，显示我们获取到的 diff 内容
-                        if (!string.IsNullOrEmpty(diffContent))
-                        {
-                            MessageBox.Show(diffContent, "文件 Diff 内容");
-                        }
-                        else
-                        {
-                            MessageBox.Show("没有检测到修改内容（这通常发生在添加新文件时）。", "提示");
-                        }
+                        diffStream.Position = 0;
+                        diffContent = new StreamReader(diffStream, Encoding.UTF8).ReadToEnd();
                     }
                 }
             }
             catch (Exception ex)
             {
-                // 如果出错，也弹窗显示错误信息，方便排查
-                MessageBox.Show("Error getting Diff:\n" + ex.ToString(), "Plugin Error");
+                MessageBox.Show("获取 Diff 时出错:\n" + ex.ToString(), "插件错误");
+                return originalMessage;
             }
+
+            if (string.IsNullOrWhiteSpace(diffContent))
+            {
+                return originalMessage; // 如果没有变更内容，则不做任何事
+            }
+
+            // 3. 创建并显示加载窗口，然后等待它关闭
+            var loadingForm = new LoadingForm(config, diffContent);
+            loadingForm.ShowDialog(); // 这会打开加载窗口，并在它关闭前一直“卡”在这里
+
+            // 4. 从加载窗口取回 AI 生成的结果
+            if (!string.IsNullOrEmpty(loadingForm.AiMessage))
+            {
+                return loadingForm.AiMessage; // 返回AI消息
+            }
+
 
             // 暂时还是返回原始信息，不改变用户的提交信息
             return originalMessage;
