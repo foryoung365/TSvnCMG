@@ -1,6 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
+using SharpSvn;
+using System.IO;
 using System.Text;
+using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
@@ -35,9 +37,59 @@ namespace TSvnCMG
         public string GetCommitMessage2(IntPtr hParentWnd, string parameters, string commonURL, string commonRoot, string[] pathList,
                                string originalMessage, string bugID, out string bugIDOut, out string[] revPropNames, out string[] revPropValues)
         {
+            // 准备好默认的输出参数
             bugIDOut = bugID;
             revPropNames = null;
             revPropValues = null;
+
+            try
+            {
+                // 创建一个 SvnClient 实例
+                using (SvnClient client = new SvnClient())
+                {
+                    // diff 的内容将会被写入这个内存流中
+                    using (MemoryStream diffStream = new MemoryStream())
+                    {
+                        SvnDiffArgs args = new SvnDiffArgs();
+                        args.IgnoreContentType = true;
+
+                        // 遍历所有待提交的文件
+                        foreach (string path in pathList)
+                        {
+                            // 定义比较的两个版本：
+                            // 1. 修改前的版本 (Base)
+                            SvnPathTarget baseTarget = new SvnPathTarget(path, SvnRevision.Base);
+                            // 2. 当前工作副本中的版本 (Working)
+                            SvnPathTarget workingTarget = new SvnPathTarget(path, SvnRevision.Working);
+
+                            // 执行 Diff 操作
+                            client.Diff(baseTarget, workingTarget, args, diffStream);
+                        }
+
+                        // 将流中的内容转换成字符串
+                        diffStream.Position = 0; // 重置流的位置到开头
+                        string diffContent = new StreamReader(diffStream, Encoding.UTF8).ReadToEnd();
+
+                        // --- 测试步骤 ---
+                        // 弹出一个消息框，显示我们获取到的 diff 内容
+                        if (!string.IsNullOrEmpty(diffContent))
+                        {
+                            MessageBox.Show(diffContent, "文件 Diff 内容");
+                        }
+                        else
+                        {
+                            MessageBox.Show("没有检测到修改内容（这通常发生在添加新文件时）。", "提示");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // 如果出错，也弹窗显示错误信息，方便排查
+                MessageBox.Show("获取 Diff 时出错:\n" + ex.ToString(), "插件错误");
+            }
+
+            // 暂时还是返回原始信息，不改变用户的提交信息
             return originalMessage;
         }
 
