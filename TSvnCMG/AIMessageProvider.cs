@@ -6,7 +6,8 @@ using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Newtonsoft.Json;
-
+using LibGit2Sharp;
+using System.Linq;
 
 namespace TSvnCMG
 {
@@ -24,7 +25,7 @@ namespace TSvnCMG
 
         public string GetLinkText(IntPtr hParentWnd, string parameters)
         {
-            return "AI commit Message";
+            return "AI Message";
         }
 
         public string GetCommitMessage(IntPtr hParentWnd, string parameters, string commonRoot, string[] pathList,
@@ -69,18 +70,20 @@ namespace TSvnCMG
             string diffContent = "";
             try
             {
-                using (SvnClient client = new SvnClient())
+                // 智能检测仓库类型
+                // 我们通过 LibGit2Sharp 的 Discover 功能来判断是不是 Git 仓库
+                string gitRepoPath = Repository.Discover(pathList[0]);
+
+                if (gitRepoPath != null)
                 {
-                    using (MemoryStream diffStream = new MemoryStream())
-                    {
-                        SvnDiffArgs args = new SvnDiffArgs { IgnoreContentType = true };
-                        foreach (string path in pathList)
-                        {
-                            client.Diff(new SvnPathTarget(path, SvnRevision.Base), new SvnPathTarget(path, SvnRevision.Working), args, diffStream);
-                        }
-                        diffStream.Position = 0;
-                        diffContent = new StreamReader(diffStream, Encoding.UTF8).ReadToEnd();
-                    }
+                    // 这是 Git 仓库
+                    diffContent = GetGitDiff(pathList);
+                }
+                else
+                {
+                    // 否则，我们假定它是 SVN 仓库 (也可以增加一个 DiscoverSvnRoot 的类似检查)
+                    // 在我们的场景里，如果不是Git，那就只能是Svn
+                    diffContent = GetSvnDiff(pathList);
                 }
             }
             catch (Exception ex)
@@ -129,5 +132,48 @@ namespace TSvnCMG
             return null;
         }
 
+        private string GetGitDiff(string[] pathList)
+        {
+            // 即使 pathList 为空，我们仍然可以尝试 diff 整个仓库
+            if (pathList == null || pathList.Length == 0)
+            {
+                return "// No files selected for commit.";
+            }
+
+            string repoPath = Repository.Discover(pathList[0]);
+            if (repoPath == null)
+            {
+                return "// Could not discover repository from the provided file paths.";
+            }
+
+            using (var repo = new Repository(repoPath))
+            {
+                Tree headTree = repo.Head.Tip?.Tree;
+
+                // 我们不再传递 pathList，而是直接比较整个工作目录和 HEAD
+                // 这会获取所有已暂存和未暂存的变更，正是提交时需要的内容
+                var patch = repo.Diff.Compare<Patch>(headTree, DiffTargets.WorkingDirectory);
+
+                return patch.Content;
+            }
+        }
+
+        // 我们将现有的 SVN diff 逻辑封装成一个方法
+        private string GetSvnDiff(string[] pathList)
+        {
+            using (SvnClient client = new SvnClient())
+            {
+                using (MemoryStream diffStream = new MemoryStream())
+                {
+                    SvnDiffArgs args = new SvnDiffArgs { IgnoreContentType = true };
+                    foreach (string path in pathList)
+                    {
+                        client.Diff(new SvnPathTarget(path, SvnRevision.Base), new SvnPathTarget(path, SvnRevision.Working), args, diffStream);
+                    }
+                    diffStream.Position = 0;
+                    return new StreamReader(diffStream, Encoding.UTF8).ReadToEnd();
+                }
+            }
+        }
     }
 }
