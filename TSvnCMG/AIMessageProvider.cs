@@ -85,13 +85,13 @@ namespace TSvnCMG
             }
             catch (Exception ex)
             {
-                MessageBox.Show("获取 Diff 时出错:\n" + ex.ToString(), "插件错误");
+                MessageBox.Show("Getting diff error:\n" + ex.ToString(), "Plugin Error");
                 return originalMessage;
             }
 
             if (string.IsNullOrWhiteSpace(diffContent))
             {
-                return originalMessage; // 如果没有变更内容，则不做任何事
+                return originalMessage;
             }
 
             // 3. 创建并显示加载窗口，然后等待它关闭

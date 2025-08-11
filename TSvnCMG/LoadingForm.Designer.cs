@@ -36,21 +36,24 @@ namespace TSvnCMG
             // 
             this.Hint.Dock = System.Windows.Forms.DockStyle.Fill;
             this.Hint.Enabled = false;
-            this.Hint.Font = new System.Drawing.Font("Arial", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Hint.Font = new System.Drawing.Font("Microsoft YaHei", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Hint.Location = new System.Drawing.Point(0, 0);
             this.Hint.Multiline = true;
             this.Hint.Name = "Hint";
             this.Hint.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.Hint.Size = new System.Drawing.Size(584, 219);
+            this.Hint.Size = new System.Drawing.Size(463, 164);
             this.Hint.TabIndex = 0;
+            this.Hint.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // LoadingForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(584, 219);
+            this.ClientSize = new System.Drawing.Size(463, 164);
             this.Controls.Add(this.Hint);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Name = "LoadingForm";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Generating";
             this.Load += new System.EventHandler(this.LoadingForm_Load);
             this.ResumeLayout(false);

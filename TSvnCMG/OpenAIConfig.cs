@@ -12,11 +12,12 @@ namespace TSvnCMG
         public string api_key { get; set; }
         public string model { get; set; }
         public string base_url { get; set; }
+        public string language { get; set; }
+
+        public int max_tokens { get; set; }
     }
 
     // --- 这些类用来匹配 OpenAI API 返回的 JSON 结构 ---
-
-    // 用于最终的、非流式响应
     public class OpenAIResponse
     {
         public List<Choice> choices { get; set; }
