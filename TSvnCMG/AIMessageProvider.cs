@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using Newtonsoft.Json;
 
 namespace TSvnCMG
 {
@@ -37,6 +38,32 @@ namespace TSvnCMG
         public string GetCommitMessage2(IntPtr hParentWnd, string parameters, string commonURL, string commonRoot, string[] pathList,
                                string originalMessage, string bugID, out string bugIDOut, out string[] revPropNames, out string[] revPropValues)
         {
+            // --- 新增的解析代码 ---
+            OpenAIConfig config = null;
+            try
+            {
+                // 使用 System.Text.Json 解析参数字符串
+                config = JsonConvert.DeserializeObject<OpenAIConfig>(parameters);
+            }
+            catch (Exception ex)
+            {
+                // 如果用户的 JSON 格式错误，则弹窗提示
+                MessageBox.Show("Plugin parameters (JSON) invalid: " + ex.Message + "parameters:" + parameters, "Parameters Error");
+
+                // 返回原始信息，中断后续操作
+                bugIDOut = bugID;
+                revPropNames = null;
+                revPropValues = null;
+                return originalMessage;
+            }
+
+            // 检查一下关键信息是否存在
+            if (string.IsNullOrEmpty(config?.api_key))
+            {
+                MessageBox.Show("api_key in missing in Plugin parameters。", "Parameters Error");
+                // ... 返回并中断 ...
+            }
+
             // 准备好默认的输出参数
             bugIDOut = bugID;
             revPropNames = null;
@@ -86,7 +113,7 @@ namespace TSvnCMG
             catch (Exception ex)
             {
                 // 如果出错，也弹窗显示错误信息，方便排查
-                MessageBox.Show("获取 Diff 时出错:\n" + ex.ToString(), "插件错误");
+                MessageBox.Show("Error getting Diff:\n" + ex.ToString(), "Plugin Error");
             }
 
             // 暂时还是返回原始信息，不改变用户的提交信息
