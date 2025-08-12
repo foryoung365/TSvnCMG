@@ -152,7 +152,7 @@ namespace TSvnCMG
 
                 // 我们不再传递 pathList，而是直接比较整个工作目录和 HEAD
                 // 这会获取所有已暂存和未暂存的变更，正是提交时需要的内容
-                var patch = repo.Diff.Compare<Patch>(headTree, DiffTargets.WorkingDirectory);
+                var patch = repo.Diff.Compare<Patch>(headTree, DiffTargets.Index);
 
                 return patch.Content;
             }
