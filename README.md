@@ -66,7 +66,7 @@ Here's another example using `ollama`:
 ```json
 {
     "api_key":"123",
-    "model":"qwen3:4b-think",
+    "model":"qwen3",
     "base_url":"http://localhost:11434/v1/", 
     "language":"English",
     "max_tokens": 8192
