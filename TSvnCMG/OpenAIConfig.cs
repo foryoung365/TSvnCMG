@@ -14,6 +14,8 @@ namespace TSvnCMG
         public string base_url { get; set; }
         public string language { get; set; }
 
+        public string prompt { get; set; }
+
         public int max_tokens { get; set; }
     }
 

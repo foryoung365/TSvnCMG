@@ -44,7 +44,12 @@ namespace TSvnCMG
                     httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _config.api_key);
                     httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                    string defualt_prompt = $@"You are an expert programmer. Your task is to write a concise and informative commit message based on the provided code diff. The message should be in {_config.language}.";
+                    string prompt = $@"You are an expert programmer. Your task is to write a concise and informative commit message based on the provided code diff. The message should be in {_config.language}.";
+
+                    if (_config.prompt?.Length > 0)
+                    {
+                        prompt = _config.prompt;
+                    }
 
                     var requestBody = new Dictionary<string, object>
                     {
@@ -52,7 +57,7 @@ namespace TSvnCMG
                         { "stream", false },
                         { "messages", new[]
                             {
-                                new { role = "system", content = defualt_prompt },
+                                new { role = "system", content = prompt },
                                 new { role = "user", content = _diffContent }
                             }
                         }

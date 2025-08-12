@@ -64,8 +64,6 @@ namespace TSvnCMG
                 return originalMessage;
             }
 
-
-
             // 2. 获取 Diff 内容
             string diffContent = "";
             try
